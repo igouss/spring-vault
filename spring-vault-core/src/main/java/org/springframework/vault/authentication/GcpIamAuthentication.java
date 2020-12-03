@@ -21,18 +21,16 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.google.api.client.googleapis.apache.GoogleApacheHttpTransport;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.api.services.iam.v1.Iam;
-import com.google.api.services.iam.v1.Iam.Builder;
-import com.google.api.services.iam.v1.Iam.Projects.ServiceAccounts.SignJwt;
-import com.google.api.services.iam.v1.model.SignJwtRequest;
-import com.google.api.services.iam.v1.model.SignJwtResponse;
-import com.google.auth.oauth2.GoogleCredentials;
 
+import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.cloud.iam.credentials.v1.IamCredentialsClient;
+import com.google.cloud.iam.credentials.v1.ServiceAccountName;
+import com.google.cloud.iam.credentials.v1.SignJwtRequest;
+import com.google.cloud.iam.credentials.v1.SignJwtResponse;
 import org.springframework.util.Assert;
 import org.springframework.vault.VaultException;
 import org.springframework.vault.support.VaultToken;
@@ -44,7 +42,7 @@ import org.springframework.web.client.RestOperations;
  * <p/>
  * This authentication method uses Googles IAM API to obtain a signed token for a specific
  * {@link com.google.api.client.auth.oauth2.Credential}. Project and service account
- * details are obtained from a {@link GoogleCredential} that can be retrieved either from
+ * details are obtained from a {@link ServiceAccountCredentials} that can be retrieved either from
  * a JSON file or the runtime environment (GAE, GCE).
  * <p/>
  * {@link GcpIamAuthentication} uses Google Java API that uses synchronous API.
@@ -54,8 +52,8 @@ import org.springframework.web.client.RestOperations;
  * @since 2.1
  * @see GcpIamAuthenticationOptions
  * @see HttpTransport
- * @see GoogleCredential
- * @see GoogleCredentials#getApplicationDefault()
+ * @see ServiceAccountCredentials
+ * @see ServiceAccountCredentials#getApplicationDefault()
  * @see RestOperations
  * @see <a href="https://www.vaultproject.io/docs/auth/gcp.html">Auth Backend: gcp
  * (IAM)</a>
@@ -71,7 +69,7 @@ public class GcpIamAuthentication extends GcpJwtAuthenticationSupport implements
 
 	private final HttpTransport httpTransport;
 
-	private final GoogleCredential credential;
+	private final ServiceAccountCredentials credential;
 
 	/**
 	 * Create a new instance of {@link GcpIamAuthentication} given
@@ -115,25 +113,19 @@ public class GcpIamAuthentication extends GcpJwtAuthenticationSupport implements
 	}
 
 	protected String signJwt() {
-
 		String projectId = getProjectId();
 		String serviceAccount = getServiceAccountId();
 		Map<String, Object> jwtPayload = getJwtPayload(this.options, serviceAccount);
 
-		Iam iam = new Builder(this.httpTransport, JSON_FACTORY, this.credential)
-				.setApplicationName("Spring Vault/" + getClass().getName()).build();
-
-		try {
-
+		// TODO: Figure out how to set httpTransport on IamCredentialsClient
+		try (IamCredentialsClient iamCredentialsClient = IamCredentialsClient.create()) {
+			ServiceAccountName name = ServiceAccountName.of(projectId, serviceAccount);
 			String payload = JSON_FACTORY.toString(jwtPayload);
-			SignJwtRequest request = new SignJwtRequest();
-			request.setPayload(payload);
-
-			SignJwt signJwt = iam.projects().serviceAccounts()
-					.signJwt(String.format("projects/%s/serviceAccounts/%s", projectId, serviceAccount), request);
-
-			SignJwtResponse response = signJwt.execute();
-
+			SignJwtRequest request = SignJwtRequest.newBuilder()
+					.setName(name.toString())
+					.setPayload(payload)
+					.build();
+			SignJwtResponse response = iamCredentialsClient.signJwt(request);
 			return response.getSignedJwt();
 		}
 		catch (IOException e) {

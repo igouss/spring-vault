@@ -15,18 +15,13 @@
  */
 package org.springframework.vault.authentication;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.time.Duration;
-
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential.Builder;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -48,71 +43,77 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
  */
 class GcpIamAuthenticationUnitTests {
 
-	RestTemplate restTemplate;
+    RestTemplate restTemplate;
 
-	MockRestServiceServer mockRest;
+    MockRestServiceServer mockRest;
 
-	MockHttpTransport mockHttpTransport;
+    MockHttpTransport mockHttpTransport;
 
-	@BeforeEach
-	void before() {
+    @BeforeEach
+    void before() {
 
-		RestTemplate restTemplate = new RestTemplate();
-		restTemplate.setUriTemplateHandler(new PrefixAwareUriTemplateHandler());
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.setUriTemplateHandler(new PrefixAwareUriTemplateHandler());
 
-		this.mockRest = MockRestServiceServer.createServer(restTemplate);
-		this.restTemplate = restTemplate;
-	}
+        this.mockRest = MockRestServiceServer.createServer(restTemplate);
+        this.restTemplate = restTemplate;
+    }
 
-	@Test
-	void shouldLogin() {
+    @Test
+    void shouldLogin() {
 
-		MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
-		response.setStatusCode(200);
-		response.setContent("{\"keyId\":\"keyid\", \"signedJwt\":\"my-jwt\"}");
+        MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
+        response.setStatusCode(200);
+        response.setContent("{\"keyId\":\"keyid\", \"signedJwt\":\"my-jwt\"}");
 
-		this.mockHttpTransport = new MockHttpTransport.Builder().setLowLevelHttpResponse(response).build();
+        this.mockHttpTransport = new MockHttpTransport.Builder().setLowLevelHttpResponse(response).build();
 
-		this.mockRest.expect(requestTo("/auth/gcp/login")).andExpect(method(HttpMethod.POST))
-				.andExpect(jsonPath("$.role").value("dev-role")).andExpect(jsonPath("$.jwt").value("my-jwt"))
-				.andRespond(withSuccess().contentType(MediaType.APPLICATION_JSON).body(
-						"{" + "\"auth\":{\"client_token\":\"my-token\", \"renewable\": true, \"lease_duration\": 10}"
-								+ "}"));
+        this.mockRest.expect(requestTo("/auth/gcp/login")).andExpect(method(HttpMethod.POST))
+                .andExpect(jsonPath("$.role").value("dev-role")).andExpect(jsonPath("$.jwt").value("my-jwt"))
+                .andRespond(withSuccess().contentType(MediaType.APPLICATION_JSON).body(
+                        "{" + "\"auth\":{\"client_token\":\"my-token\", \"renewable\": true, \"lease_duration\": 10}"
+                                + "}"));
 
-		PrivateKey privateKeyMock = mock(PrivateKey.class);
-		GoogleCredential credential = new Builder().setServiceAccountId("hello@world")
-				.setServiceAccountProjectId("foobar").setServiceAccountPrivateKey(privateKeyMock)
-				.setServiceAccountPrivateKeyId("key-id").build();
-		credential.setAccessToken("foobar");
+        PrivateKey privateKeyMock = mock(PrivateKey.class);
+        ServiceAccountCredentials credential = ServiceAccountCredentials.newBuilder()
+                .setClientEmail("hello@world")
+                .setProjectId("foobar")
+                .setPrivateKey(privateKeyMock)
+                .setPrivateKeyId("key-id")
+                .build();
 
-		GcpIamAuthenticationOptions options = GcpIamAuthenticationOptions.builder().role("dev-role")
-				.credential(credential).build();
-		GcpIamAuthentication authentication = new GcpIamAuthentication(options, this.restTemplate,
-				this.mockHttpTransport);
+        GcpIamAuthenticationOptions options = GcpIamAuthenticationOptions.builder().role("dev-role")
+                .credential(credential).build();
+        GcpIamAuthentication authentication = new GcpIamAuthentication(options, this.restTemplate,
+                this.mockHttpTransport);
 
-		VaultToken login = authentication.login();
+        VaultToken login = authentication.login();
 
-		assertThat(login).isInstanceOf(LoginToken.class);
-		assertThat(login.getToken()).isEqualTo("my-token");
+        assertThat(login).isInstanceOf(LoginToken.class);
+        assertThat(login.getToken()).isEqualTo("my-token");
 
-		LoginToken loginToken = (LoginToken) login;
-		assertThat(loginToken.isRenewable()).isTrue();
-		assertThat(loginToken.getLeaseDuration()).isEqualTo(Duration.ofSeconds(10));
-	}
+        LoginToken loginToken = (LoginToken) login;
+        assertThat(loginToken.isRenewable()).isTrue();
+        assertThat(loginToken.getLeaseDuration()).isEqualTo(Duration.ofSeconds(10));
+    }
 
-	@Test
-	void shouldCreateNewGcpIamObjectInstance() throws GeneralSecurityException, IOException {
+    @Test
+    void shouldCreateNewGcpIamObjectInstance() {
 
-		PrivateKey privateKeyMock = mock(PrivateKey.class);
-		GoogleCredential credential = new Builder().setServiceAccountId("hello@world")
-				.setServiceAccountProjectId("foobar").setServiceAccountPrivateKey(privateKeyMock)
-				.setServiceAccountPrivateKeyId("key-id").build();
-		credential.setAccessToken("foobar");
+        PrivateKey privateKeyMock = mock(PrivateKey.class);
+        ServiceAccountCredentials credential = ServiceAccountCredentials.newBuilder()
+                .setClientEmail("hello@world")
+                .setProjectId("foobar")
+                .setPrivateKey(privateKeyMock)
+                .setPrivateKeyId("key-id")
+                .build();
 
-		GcpIamAuthenticationOptions options = GcpIamAuthenticationOptions.builder().role("dev-role")
-				.credential(credential).build();
+        GcpIamAuthenticationOptions options = GcpIamAuthenticationOptions.builder()
+                .role("dev-role")
+                .credential(credential)
+                .build();
 
-		new GcpIamAuthentication(options, this.restTemplate);
-	}
+        new GcpIamAuthentication(options, this.restTemplate);
+    }
 
 }

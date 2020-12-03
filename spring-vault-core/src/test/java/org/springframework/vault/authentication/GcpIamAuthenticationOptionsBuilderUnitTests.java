@@ -17,7 +17,7 @@ package org.springframework.vault.authentication;
 
 import java.security.PrivateKey;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +33,7 @@ class GcpIamAuthenticationOptionsBuilderUnitTests {
 	@Test
 	void shouldDefaultToCredentialServiceAccountId() {
 
-		GoogleCredential credential = createGoogleCredential();
+		ServiceAccountCredentials credential = createGoogleCredential();
 
 		GcpIamAuthenticationOptions options = GcpIamAuthenticationOptions.builder().credential(credential).role("foo")
 				.build();
@@ -44,7 +44,7 @@ class GcpIamAuthenticationOptionsBuilderUnitTests {
 	@Test
 	void shouldAllowServiceAccountIdOverride() {
 
-		GoogleCredential credential = createGoogleCredential();
+		ServiceAccountCredentials credential = createGoogleCredential();
 
 		GcpIamAuthenticationOptions options = GcpIamAuthenticationOptions.builder().credential(credential)
 				.serviceAccountId("override@foo.com").role("foo").build();
@@ -55,10 +55,10 @@ class GcpIamAuthenticationOptionsBuilderUnitTests {
 	@Test
 	void shouldAllowServiceAccountIdProviderOverride() {
 
-		GoogleCredential credential = createGoogleCredential();
+		ServiceAccountCredentials credential = createGoogleCredential();
 
 		GcpIamAuthenticationOptions options = GcpIamAuthenticationOptions.builder().credential(credential)
-				.serviceAccountIdAccessor((GoogleCredential googleCredential) -> "override@foo.com").role("foo")
+				.serviceAccountIdAccessor((ServiceAccountCredentials googleCredential) -> "override@foo.com").role("foo")
 				.build();
 
 		assertThat(options.getServiceAccountIdAccessor().getServiceAccountId(credential)).isEqualTo("override@foo.com");
@@ -67,7 +67,7 @@ class GcpIamAuthenticationOptionsBuilderUnitTests {
 	@Test
 	void shouldDefaultToCredentialProjectId() {
 
-		GoogleCredential credential = createGoogleCredential();
+		ServiceAccountCredentials credential = createGoogleCredential();
 
 		GcpIamAuthenticationOptions options = GcpIamAuthenticationOptions.builder().credential(credential).role("foo")
 				.build();
@@ -78,7 +78,7 @@ class GcpIamAuthenticationOptionsBuilderUnitTests {
 	@Test
 	void shouldAllowProjectIdOverride() {
 
-		GoogleCredential credential = createGoogleCredential();
+		ServiceAccountCredentials credential = createGoogleCredential();
 
 		GcpIamAuthenticationOptions options = GcpIamAuthenticationOptions.builder().credential(credential)
 				.projectId("my-project").role("foo").build();
@@ -89,23 +89,21 @@ class GcpIamAuthenticationOptionsBuilderUnitTests {
 	@Test
 	void shouldAllowProjectIdProviderOverride() {
 
-		GoogleCredential credential = createGoogleCredential();
+		ServiceAccountCredentials credential = createGoogleCredential();
 
 		GcpIamAuthenticationOptions options = GcpIamAuthenticationOptions.builder().credential(credential)
-				.projectIdAccessor((GoogleCredential googleCredential) -> "my-project").role("foo").build();
+				.projectIdAccessor((ServiceAccountCredentials googleCredential) -> "my-project").role("foo").build();
 
 		assertThat(options.getProjectIdAccessor().getProjectId(credential)).isEqualTo("my-project");
 	}
 
-	private static GoogleCredential createGoogleCredential() {
-
-		GoogleCredential credential = new GoogleCredential.Builder().setServiceAccountId("hello@world")
-				.setServiceAccountProjectId("project-id").setServiceAccountPrivateKey(mock(PrivateKey.class))
-				.setServiceAccountPrivateKeyId("key-id").build();
-
-		credential.setAccessToken("foobar");
-
-		return credential;
+	private static ServiceAccountCredentials createGoogleCredential() {
+		return ServiceAccountCredentials.newBuilder()
+				.setClientEmail("hello@world")
+				.setProjectId("project-id")
+				.setPrivateKey(mock(PrivateKey.class))
+				.setPrivateKeyId("key-id")
+				.build();
 	}
 
 }

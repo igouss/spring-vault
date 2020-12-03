@@ -17,11 +17,11 @@ package org.springframework.vault.authentication;
 
 import java.io.IOException;
 import java.util.function.Supplier;
-
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 
 /**
- * Interface to obtain a {@link GoogleCredential} for GCP IAM authentication.
+ * Interface to obtain a {@link ServiceAccountCredentials} for GCP IAM authentication.
  * Implementations are used by {@link GcpIamAuthentication}.
  *
  * @author Mark Paluch
@@ -29,14 +29,14 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
  * @see GcpIamAuthentication
  */
 @FunctionalInterface
-public interface GcpCredentialSupplier extends Supplier<GoogleCredential> {
+public interface GcpCredentialSupplier extends Supplier<GoogleCredentials> {
 
 	/**
-	 * Exception-safe helper to get {@link GoogleCredential} from {@link #getCredential}.
+	 * Exception-safe helper to get {@link ServiceAccountCredentials} from {@link #getCredential}.
 	 * @return the GoogleCredential for JWT signing.
 	 */
 	@Override
-	default GoogleCredential get() {
+	default ServiceAccountCredentials get() {
 
 		try {
 			return getCredential();
@@ -47,10 +47,10 @@ public interface GcpCredentialSupplier extends Supplier<GoogleCredential> {
 	}
 
 	/**
-	 * Get a {@link GoogleCredential} for GCP IAM authentication via JWT signing.
-	 * @return the {@link GoogleCredential}.
+	 * Get a {@link ServiceAccountCredentials} for GCP IAM authentication via JWT signing.
+	 * @return the {@link ServiceAccountCredentials}.
 	 * @throws IOException if the credential lookup fails.
 	 */
-	GoogleCredential getCredential() throws IOException;
+	ServiceAccountCredentials getCredential() throws IOException;
 
 }

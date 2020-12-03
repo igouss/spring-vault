@@ -15,24 +15,23 @@
  */
 package org.springframework.vault.authentication;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 
 /**
  * Interface to obtain a service account id for GCP IAM authentication. Implementations
  * are used by {@link GcpIamAuthentication}.
  *
  * @author Magnus Jungsbluth
- * @since 2.1
  * @see GcpIamAuthentication
+ * @since 2.1
  */
 @FunctionalInterface
 public interface GcpServiceAccountIdAccessor {
-
-	/**
-	 * Get a the service account id (email) to be placed in the signed JWT.
-	 * @param credential credential object to obtain the service account id from.
-	 * @return the service account id to use.
-	 */
-	String getServiceAccountId(GoogleCredential credential);
-
+    /**
+     * Get a the service account id (email) to be placed in the signed JWT.
+     *
+     * @param credential credential object to obtain the service account id from.
+     * @return the service account id to use.
+     */
+    String getServiceAccountId(ServiceAccountCredentials credential);
 }

@@ -15,8 +15,7 @@
  */
 package org.springframework.vault.authentication;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -39,13 +38,12 @@ enum DefaultGcpCredentialAccessors implements GcpProjectIdAccessor, GcpServiceAc
 	 * @return the service account id to use.
 	 */
 	@Override
-	public String getServiceAccountId(GoogleCredential credential) {
-
+	public String getServiceAccountId(ServiceAccountCredentials credential) {
 		Assert.notNull(credential, "GoogleCredential must not be null");
-		Assert.notNull(credential.getServiceAccountId(),
+		Assert.notNull(credential.getAccount(),
 				"The configured GoogleCredential does not represent a service account. Configure the service account id with GcpIamAuthenticationOptionsBuilder#serviceAccountId(String).");
 
-		return credential.getServiceAccountId();
+		return credential.getAccount();
 	}
 
 	/**
@@ -54,12 +52,12 @@ enum DefaultGcpCredentialAccessors implements GcpProjectIdAccessor, GcpServiceAc
 	 * @return the service account id to use.
 	 */
 	@Override
-	public String getProjectId(GoogleCredential credential) {
+	public String getProjectId(ServiceAccountCredentials credential) {
 
 		Assert.notNull(credential, "GoogleCredential must not be null");
 
-		return StringUtils.isEmpty(credential.getServiceAccountProjectId()) ? "-"
-				: credential.getServiceAccountProjectId();
+		return StringUtils.isEmpty(credential.getProjectId()) ? "-"
+				: credential.getProjectId();
 	}
 
 }
